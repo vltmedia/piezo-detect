@@ -2,31 +2,37 @@
 
 
 #include <WiFiUdp.h>
-#include <ESP8266WiFi.h>
+// #include <ESP8266WiFi.h>
+#include <WiFi.h>
 
 
+const int LED_BUILTIN = 2;
+// const int analogInPin = A0;  // ESP8266 Analog Pin ADC0 = A0
+const int analogInPin = 34;  // ESP8266 Analog Pin ADC0 = A0
+const int analogInPin2 = 35;  // ESP8266 Analog Pin ADC0 = A0
 
-const int analogInPin = A0;  // ESP8266 Analog Pin ADC0 = A0
+int sensorValue = 0;  // value read from the pot
+int sensorValue2 = 0;  // value read from the pot
 
-char ssid[] = "ssid"; //replace this with your WiFi network name
-char pass[] = "*****"; //replace this with your WiFi network password
+int debounceDelay = 200;  // delay in microseconds
+int currentWait = 0;  // delay in microseconds
+int currentWait2 = 0;  // delay in microseconds
+bool ledState = false;  // ledState used to set the LED
+
+char ssid[] = "Bravo Brain"; //replace this with your WiFi network name
+char pass[] = "greenscreen12"; //replace this with your WiFi network password
 
 WiFiUDP Udp;                                // A UDP instance to let us send and receive packets over UDP
-const IPAddress outIp(10,0,0,18);        // remote IP of your computer
+const IPAddress outIp(10,0,0,9);        // remote IP of your computer
 const unsigned int outPort = 9999;          // remote port to receive OSC
 const unsigned int localPort = 2390;        // local port to listen for OSC packets (not used/tested)
 
 
-int sensorValue = 0;  // value read from the pot
-int sensor2Value = 0;  // value read from the pot
-
-int debounceDelay = 600;  // delay in microseconds
-int currentWait = 0;  // delay in microseconds
-bool ledState = false;  // ledState used to set the LED
 
 void setup() {
   Serial.begin(115200);
-  WiFi.begin(ssid, pass);
+
+ WiFi.begin(ssid, pass);
   Serial.println();
   Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED)
@@ -41,8 +47,8 @@ void setup() {
 
     Serial.println("Starting UDP");
     Udp.begin(localPort);
-    Serial.print("Local port: ");
-    Serial.println(Udp.localPort());
+    Serial.println("Connected To UDP!");
+
 
   pinMode(LED_BUILTIN, OUTPUT);  // Initialize the LED_BUILTIN pin as an output
 }
@@ -66,23 +72,35 @@ void sendMessage2() {
 }
 
 
-void loop() {
+void readSensor1() {
   sensorValue = analogRead(analogInPin);
-  digitalWrite(LED_BUILTIN, HIGH);  
-  if(sensorValue > 6 && currentWait > debounceDelay) {
+  if(sensorValue > 16 && currentWait > debounceDelay) {
     currentWait = 0;
-    sendMessage1();
-    if(ledState == false) {
-      ledState = true;
-      digitalWrite(LED_BUILTIN, HIGH);  // turn the LED on (HIGH is the voltage level)
-    } else {
-      ledState = false;
-      digitalWrite(LED_BUILTIN, LOW);  // turn the LED off by making the voltage LOW
-    }
+  sendMessage1();
   Serial.println(sensorValue);
 
   }
 
   currentWait += 100;
-  delay(100);
+}
+
+void readSensor2() {
+  sensorValue2 = analogRead(analogInPin2);
+  if(sensorValue2 > 16 && currentWait2 > debounceDelay) {
+    currentWait2 = 0;
+  Serial.println(sensorValue2);
+  sendMessage2();
+  }
+  currentWait2 += 100;
+
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, HIGH);  
+  readSensor1();
+  readSensor2();
+  digitalWrite(LED_BUILTIN, LOW);  
+  
+  delay(500);
+
 }
